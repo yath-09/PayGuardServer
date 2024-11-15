@@ -43,6 +43,15 @@ export const signUpUser = async (req: Request, res: Response): Promise<void> => 
       },
     });
 
+    //creating the balance field also when the user is created
+    await prisma.balance.create({
+      data: {
+        userId: user.id, // Use the newly created user's ID
+        amount: 0, // Starting balance is 0
+        locked: 0, // Starting locked balance is 0
+      },
+    });
+
     //create tokens
     const token: string = generateToken({
       id: user.id,

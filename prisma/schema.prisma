@@ -21,4 +21,32 @@ model User {
   isPhoneVerified Boolean  @default(false)
   createdAt       DateTime @default(now())
   refreshToken    String?
+  OnRampTransaction OnRampTransaction[]
+  Balance           Balance[]
+}
+
+
+model OnRampTransaction {
+  id        Int          @id @default(autoincrement())
+  status    OnRampStatus
+  token     String       @unique
+  provider  String
+  amount    Int
+  startTime DateTime
+  userId    Int
+  user      User         @relation(fields: [userId], references: [id])
+}
+
+model Balance {
+  id     Int  @id @default(autoincrement())
+  userId Int  @unique
+  amount Int
+  locked Int
+  user   User @relation(fields: [userId], references: [id])
+}
+
+enum OnRampStatus {
+  Success
+  Failure
+  Processing
 }

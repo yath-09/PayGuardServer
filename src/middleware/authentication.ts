@@ -2,7 +2,7 @@ import { Response, Request, NextFunction } from "express";
 import { verifyToken } from "../services/generateTokens";
 
 
-interface AuthenticatedRequest extends Request {
+export interface AuthenticatedRequest extends Request {
   user?: { id: number; phoneNumber: string}; // Define the structure of user object based on your token
 }
 

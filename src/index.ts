@@ -4,7 +4,7 @@ import cors from 'cors';
 //import userRoutes from './routes/userRoutes';
 import { PrismaClient } from '@prisma/client';
 import router  from './routes/user.routes';
-
+import cookieParser from "cookie-parser";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -12,7 +12,7 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 8000;
 const prisma = new PrismaClient();
-
+app.use(cookieParser()); // Use the middleware
 // Middleware
 app.use(express.json());
 app.use(cors({ origin: process.env.CORS_ORIGIN, credentials: true }));

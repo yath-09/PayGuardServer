@@ -1,1 +1,1 @@
-{"root":["./src/index.ts","./src/controller/user.controller.ts","./src/middleware/authentication.ts","./src/routes/user.routes.ts","./src/services/generatetokens.ts","./src/services/hashedpassword.ts"],"version":"5.6.3"}
+{"root":["./src/index.ts","./src/controller/transactions.controller.ts","./src/controller/user.controller.ts","./src/middleware/authentication.ts","./src/routes/user.routes.ts","./src/services/generatetokens.ts","./src/services/hashedpassword.ts"],"version":"5.6.3"}
