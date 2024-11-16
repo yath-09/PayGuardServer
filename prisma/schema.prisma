@@ -23,6 +23,8 @@ model User {
   refreshToken    String?
   OnRampTransaction OnRampTransaction[]
   Balance           Balance[]
+  sentTransfers     p2pTransfer[]       @relation(name: "FromUserRelation")
+  receivedTransfers p2pTransfer[]       @relation(name: "ToUserRelation")
 }
 
 
@@ -43,6 +45,18 @@ model Balance {
   amount Int
   locked Int
   user   User @relation(fields: [userId], references: [id])
+}
+
+model p2pTransfer {
+  id         Int          @id @default(autoincrement())
+  amount     Int
+  status    OnRampStatus  @default(Processing)
+  token     String       @unique
+  timestamp  DateTime
+  fromUserId Int
+  fromUser   User         @relation(name: "FromUserRelation", fields: [fromUserId], references: [id])//imp step
+  toUserId   Int
+  toUser     User         @relation(name: "ToUserRelation", fields: [toUserId], references: [id])
 }
 
 enum OnRampStatus {
