@@ -7,115 +7,95 @@ import { AuthenticatedRequest } from "../middleware/authentication";
 const prisma = new PrismaClient();
 
 export const addMoney = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const { amount, provider } = req.body;
-
-    // Access the authenticated user's ID from the token
-    const userId = req.user?.id;
-
-    // Validate inputs
-    if (!userId || !amount || !provider) {
-       res.status(400).json({ error: "Missing required fields" });
-    }
-
-    if (amount <= 0) {
-       res.status(400).json({ error: "Invalid amount" });
-    }
-
-    //Step 1: Verify if user exists
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-       res.status(404).json({ error: "User not found" });
-    }
-
-    // Remaining implementation is the same as before...
-    const transaction = await prisma.onRampTransaction.create({
-      data: {
-        status: "Processing",
-        token: generateTransactionToken(),
-        provider,
-        amount,
-        startTime: new Date(),
-        userId:user?.id || 0,
-      },
-    });
-    // to check for success without ant bank api
-    // let bankResponse={
-    //     data:{
-    //         status:"success"
-    //     }
-    // };
-    let bankResponse;
     try {
-      bankResponse = await axios.post("https://bankapi.example.com/process", { //hitting the api for the banks to be added here
-        userId,
-        amount,
-        provider,
-      });
-    } catch (error:any) {
-      await prisma.onRampTransaction.update({
-        where: { id: transaction.id },
-        data: { status: "Failure" },
-      });
+        const { amount, provider } = req.body;
 
-      res
-        .status(500)
-        .json({ error: "Bank API request failed", details: error.message });
-    }
+        // Access the authenticated user's ID from the token no need to find the userId specifically form anywhere
+        const userId = req.user?.id;
+        if(!userId){
+            res.status(400).json({ error: "uSER NOT FOUND" });
+        }
+        // Validate inputs
+        if (!amount || !provider) {
+            res.status(400).json({ error: "Missing required fields" });
+        }
 
-    if (bankResponse && bankResponse.data.status === "success") {
-      await prisma.onRampTransaction.update({
-        where: { id: transaction.id },
-        data: { status: "Success" },
-      });
+        if (amount <= 0) {
+            res.status(400).json({ error: "Invalid amount" });
+        }
 
-      //findign the balance for the user
+        //Verify if user exists,already done but need to be figired out 
+        // const user = await prisma.user.findUnique({
+        //     where: { id: userId },
+        // });
 
-      const userBalance = await prisma.balance.findUnique({
-        where: { userId },
-      });
+        // if (!user) {
+        //     res.status(404).json({ error: "User not found" });
+        // }
 
-      if (userBalance) {
-        await prisma.balance.update({
-          where: { userId },
-          data: {
-            amount:{// 
-                increment:Number(amount)
-            }
-          },
+       
+        const transaction = await prisma.onRampTransaction.create({
+            data: {
+                status: "Processing",
+                token: generateTransactionToken(),
+                provider,
+                amount,
+                startTime: new Date(),
+                userId: userId || 0,
+            },
         });
-    } 
-    //as we are alreayd creating the 0 balcnace so this will not occur
-    //else {
-    //     await prisma.balance.create({
-    //       data: {
-    //         userId,
-    //         amount,
-    //         locked: 0,
-    //       },
-    //     });
-    //   }
+        // let bankResponse = await axios.post("https://bankapi.example.com/process", { //hitting the api for the banks to be added here
+        //     userId,
+        //     amount,
+        //     provider,
+        // });
+        let bankResponse = await simulateBankApi(amount,  userId ? userId:0, provider); //checking for userId or returning the defualt user id 
+        if (bankResponse && bankResponse.success) {
+            await prisma.onRampTransaction.update({
+                where: { id: transaction.id },
+                data: { status: "Success" },
+            });
 
-      res
-        .status(200)
-        .json({ message: "Funds added successfully", transactionId: transaction.id });
-    } else {
-      await prisma.onRampTransaction.update({
-        where: { id: transaction.id },
-        data: { status: "Failure" },
-      });
+            //findign the balance for the user
 
-      res.status(400).json({ error: "Bank API reported failure" });
+            const userBalance = await prisma.balance.findUnique({
+                where: { userId },
+            });
+
+            if (userBalance) {
+                await prisma.balance.update({
+                    where: { userId },
+                    data: {
+                        amount: {// 
+                            increment: Number(amount)
+                        }
+                    },
+                });
+            }
+            res
+                .status(200)
+                .json({ message: "Funds added successfully", transactionId: transaction.id });
+        } else {
+            await prisma.onRampTransaction.update({
+                where: { id: transaction.id },
+                data: { status: "Failure" },
+            });
+
+            res.status(400).json({ error: "Bank API reported failure" });
+        }
+    } catch (error) {
+        console.error("Error in addMoney:", error);
+        res.status(500).json({ error: "Internal server error" });
     }
-  } catch (error) {
-    console.error("Error in addMoney:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
 };
 
 function generateTransactionToken(): string {
-  return `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
+
+// Mock bank API call for demonstration
+const simulateBankApi = async (amount: number, userId: number, provider: String): Promise<{ success: boolean }> => {
+    // Simulate a delay
+    await new Promise((resolve) => setTimeout(resolve, 100000));
+    return { success: false }; // Simulate a successful response
+};

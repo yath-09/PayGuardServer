@@ -3,6 +3,7 @@ import { PrismaClient, User } from "@prisma/client";
 import { hashPin } from "../services/hashedPassword";
 import { generateToken } from "../services/generateTokens";
 import { compare } from "bcryptjs";
+import { AuthenticatedRequest } from "../middleware/authentication";
 interface UserInput {
   userName: string;
   phoneNumber: string;
@@ -123,4 +124,23 @@ export const signInUser = async (req:any, res:any) => {
     console.error(error);
     res.status(500).json({ error: "Failed to sign in user" });
   }
+}
+
+
+export const logoutUser=async(req:AuthenticatedRequest,res:Response)=>{
+  const userId = req.user?.id;
+  console.log(userId)
+
+  try {
+    const options = {
+      httpOnly: true,
+      secure: true,
+      sameSight:"strict"
+    };
+    //clearing the cookies for the user 
+    res
+    .clearCookie("access_token", options).json({message:"User Logout Succcesfully"})
+  } catch (error) {
+      console.log(error)
+  } 
 }
