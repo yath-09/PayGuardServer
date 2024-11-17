@@ -33,7 +33,7 @@ model BankAccount {
   id             Int      @id @default(autoincrement())
   accountNumber  String   @unique
   ifscCode       String
-  bankName       String   // Denormalized for easier querying
+  bankName       String  
   upiId          String   @unique
   mpin           String   // 6-digit secure MPIN
   isDefault      Boolean  @default(false)
