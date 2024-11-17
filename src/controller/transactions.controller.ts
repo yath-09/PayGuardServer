@@ -135,7 +135,7 @@ export const p2pTransfer = async (req: AuthenticatedRequest, res: Response): Pro
                 timestamp: new Date()
             }
         })
-        let success = false;
+       
         try {
             await prisma.$transaction(async (tx) => {
                 //locking the update row so only one at a time
@@ -162,7 +162,7 @@ export const p2pTransfer = async (req: AuthenticatedRequest, res: Response): Pro
                     where: { userId: Number(toUser?.id) },
                     data: { amount: { increment: amount } },
                 });
-                success = true;
+                
                 //to create the ranscation table for p2p tranaction
             });
 

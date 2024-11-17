@@ -3,8 +3,9 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 //import userRoutes from './routes/userRoutes';
 import { PrismaClient } from '@prisma/client';
-import router  from './routes/user.routes';
 import cookieParser from "cookie-parser";
+import bankRouter from './routes/bank.routes';
+import userRouter from './routes/user.routes';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -26,7 +27,8 @@ app.use(cors({ origin: process.env.CORS_ORIGIN, credentials: true }));
 // });
 
 
-app.use('/api/user', router);
+app.use('/api/user', userRouter);
+app.use('/api/bank',bankRouter)
 // Test route to add a user
 // app.get('/api/test-add-user', async (req, res) => {
 //     try {

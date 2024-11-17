@@ -4,13 +4,13 @@ import { authenticateJwt } from "../middleware/authentication";
 import { addMoney, p2pTransfer } from "../controller/transactions.controller";
 
 
-const router: Router = express.Router();
+const userRouter: Router = express.Router();
 
-router.post("/signup",signUpUser)
-router.post("/signin",signInUser)
-router.post("/addmoney", authenticateJwt, addMoney);
-router.post("/tranfermoney",authenticateJwt,p2pTransfer)
-router.post("/logout",authenticateJwt,logoutUser)
+userRouter.post("/signup",signUpUser)
+userRouter.post("/signin",signInUser)
+userRouter.post("/addmoney", authenticateJwt, addMoney);
+userRouter.post("/tranfermoney",authenticateJwt,p2pTransfer)
+userRouter.post("/logout",authenticateJwt,logoutUser)
 
 
-export default router;
+export default userRouter;

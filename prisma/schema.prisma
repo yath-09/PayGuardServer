@@ -25,8 +25,29 @@ model User {
   Balance           Balance[]
   sentTransfers     p2pTransfer[]       @relation(name: "FromUserRelation")
   receivedTransfers p2pTransfer[]       @relation(name: "ToUserRelation")
+  panNumber       String?        @unique
+  bankAccounts    BankAccount[]
 }
 
+model BankAccount {
+  id             Int      @id @default(autoincrement())
+  accountNumber  String   @unique
+  ifscCode       String
+  bankName       String   // Denormalized for easier querying
+  upiId          String   @unique
+  mpin           String   // 6-digit secure MPIN
+  isDefault      Boolean  @default(false)
+  userId         Int
+  user           User     @relation(fields: [userId], references: [id])
+  bankId         Int
+  bank           Bank     @relation(fields: [bankId], references: [id])
+}
+
+model Bank {
+  id       Int      @id @default(autoincrement())
+  name     String   @unique
+  accounts BankAccount[]
+}
 
 model OnRampTransaction {
   id        Int          @id @default(autoincrement())
