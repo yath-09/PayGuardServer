@@ -75,3 +75,5 @@ export const addBank = async (req: AuthenticatedRequest, res: Response): Promise
         res.status(500).json({ error: "Internal server error" });
     }
 };
+
+

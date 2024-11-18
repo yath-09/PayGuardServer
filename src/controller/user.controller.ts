@@ -78,7 +78,7 @@ export const signUpUser = async (req: Request, res: Response): Promise<void> => 
 //      res.status(400).message
 // }
 
-export const signInUser = async (req:any, res:any) => {
+export const signInUser = async (req: any, res: any) => {
   if (!req.body) {
     res.status(400).json({ message: "Request body is missing." });
     return;
@@ -127,7 +127,7 @@ export const signInUser = async (req:any, res:any) => {
 }
 
 
-export const logoutUser=async(req:AuthenticatedRequest,res:Response)=>{
+export const logoutUser = async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
   console.log(userId)
 
@@ -135,12 +135,61 @@ export const logoutUser=async(req:AuthenticatedRequest,res:Response)=>{
     const options = {
       httpOnly: true,
       secure: true,
-      sameSight:"strict"
+      sameSight: "strict"
     };
     //clearing the cookies for the user 
     res
-    .clearCookie("access_token", options).json({message:"User Logout Succcesfully"})
+      .clearCookie("access_token", options).json({ message: "User Logout Succcesfully" })
   } catch (error) {
-      console.log(error)
-  } 
+    console.log(error)
+  }
 }
+
+
+export const searchUser = async (req: AuthenticatedRequest, res: Response): Promise<any> => {
+  try {
+    const query = req.query.query as string;
+    if (!query) {
+      return res.status(400).json({ error: "Search query cannot be empty" });
+    }
+
+    const users = await prisma.user.findMany({
+      where: {
+        OR: [
+          { userName: { contains: query, mode: 'insensitive' } },
+          { phoneNumber: { contains: query, mode: 'insensitive' } },
+        ],
+      },
+      select: {
+        userName: true,
+        phoneNumber: true,
+        bankAccounts: {
+          select: {
+            upiId: true,
+            bankName: true,
+          },
+        },
+      },
+    });
+
+    if (users.length === 0) {
+      return res.status(404).json({ error: "No users found" });
+    }
+    //ampping the user in the search results 
+    const formattedUsers = users.flatMap((user) =>
+      user.bankAccounts.map((account) => ({
+        userName: user.userName,
+        upiId: account.upiId,
+      }))
+    );
+
+    res.status(200).json({
+      message: "Search results",
+      users: formattedUsers,
+    });
+
+  } catch (error) {
+    console.error("Error searching for users:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
