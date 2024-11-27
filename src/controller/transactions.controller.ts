@@ -122,7 +122,9 @@ export const p2pTransfer = async (req: AuthenticatedRequest, res: Response): Pro
                 token: generateTransactionToken(),
                 toUserId: toUser.id,
                 amount,
-                timestamp: new Date()
+                timestamp: new Date(),
+                paymentMode:fromUser.phoneNumber.toString(),
+                receiverMode:toUser.phoneNumber.toString()
             }
         })
        
@@ -160,9 +162,6 @@ export const p2pTransfer = async (req: AuthenticatedRequest, res: Response): Pro
                 where: { id: p2pTransferAction?.id },
                 data: {
                     status: "Success",
-                    fromUserId: Number(fromUser?.id),
-                    toUserId: toUser.id,
-                    amount,
                     timestamp: new Date()
                 }
             })
@@ -174,9 +173,6 @@ export const p2pTransfer = async (req: AuthenticatedRequest, res: Response): Pro
                 where: { id: p2pTransferAction?.id },
                 data: {
                     status: "Failure",
-                    fromUserId: Number(fromUser?.id),
-                    toUserId: toUser.id,
-                    amount,
                     timestamp: new Date()
                 }
             })
@@ -190,4 +186,21 @@ export const p2pTransfer = async (req: AuthenticatedRequest, res: Response): Pro
         console.log("Error in Transfering Money:", error);
         return res.status(500).json({ error: "Internal server error" });
     }
+}
+
+export const walletBalance=async(req:AuthenticatedRequest,res:Response):Promise<any>=>{
+      try {
+          const user=req.user;
+          if(!user){
+            res.status(404).json("User not Found")
+          }
+          const UserBalance=await prisma.balance.findFirst({
+            where:{userId:user?.id}
+          })
+          res.status(200).json({"User Balance":UserBalance?.amount || 0})
+
+      } catch (error) {
+            console.error("Failed To Fetched balance")
+            res.status(400).json({error:"Failed To Fetched balance"})
+      }
 }

@@ -78,6 +78,8 @@ model p2pTransfer {
   fromUser   User         @relation(name: "FromUserRelation", fields: [fromUserId], references: [id])//imp step
   toUserId   Int
   toUser     User         @relation(name: "ToUserRelation", fields: [toUserId], references: [id])
+  paymentMode String? 
+  receiverMode String?
 }
 
 enum OnRampStatus {

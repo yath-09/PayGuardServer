@@ -101,7 +101,7 @@ export const userToUserTransfer = async (req: AuthenticatedRequest, res: Respons
         });
 
         if (!senderAccount) {
-            return res.status(404).json({ error: "Sender UPI ID not found or unauthorized" });
+            return res.status(404).json({ error: "Sender UPI ID not found" });
         }
         // Verify the receiver's UPI ID and associated account
         const receiverAccount = await prisma.bankAccount.findFirst({
@@ -133,6 +133,18 @@ export const userToUserTransfer = async (req: AuthenticatedRequest, res: Respons
         //     return res.status(500).json({ error: "Bank information unavailable" });
         // }
 
+        const userToUserTransferAction=await prisma.p2pTransfer.create({
+            data: {
+                fromUserId: senderAccount.userId,
+                toUserId: receiverAccount.userId,
+                amount,
+                status: "Processing",
+                token: generateTransactionToken(),
+                timestamp: new Date(),
+                paymentMode:senderAccount.bankName.toString(),
+                receiverMode:receiverAccount.bankName.toString(),
+            },
+        });
         // Mock API call to simulate bank transaction
         const bankTransactionResult = await mockBankTransaction(
             // senderBank.name,
@@ -143,13 +155,10 @@ export const userToUserTransfer = async (req: AuthenticatedRequest, res: Respons
         );
 
         if (!bankTransactionResult.success) {
-            await prisma.p2pTransfer.create({
+            await prisma.p2pTransfer.update({
+                where:{id:userToUserTransferAction?.id},
                 data: {
-                    fromUserId: senderAccount.userId,
-                    toUserId: receiverAccount.userId,
-                    amount,
                     status: "Failure",
-                    token: generateTransactionToken(),
                     timestamp: new Date()
                 },
             });
@@ -159,13 +168,10 @@ export const userToUserTransfer = async (req: AuthenticatedRequest, res: Respons
         }
 
         // Log the transaction
-        await prisma.p2pTransfer.create({
+        await prisma.p2pTransfer.update({
+            where:{id:userToUserTransferAction?.id},
             data: {
-                fromUserId: senderAccount.userId,
-                toUserId: receiverAccount.userId,
-                amount,
                 status: "Success",
-                token: generateTransactionToken(), // Simulate transaction hash
                 timestamp: new Date()
             },
         });
