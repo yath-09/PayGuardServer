@@ -123,11 +123,11 @@ export const p2pTransfer = async (req: AuthenticatedRequest, res: Response): Pro
                 toUserId: toUser.id,
                 amount,
                 timestamp: new Date(),
-                paymentMode:fromUser.phoneNumber.toString(),
-                receiverMode:toUser.phoneNumber.toString()
+                paymentMode: fromUser.phoneNumber.toString(),
+                receiverMode: toUser.phoneNumber.toString()
             }
         })
-       
+
         try {
             await prisma.$transaction(async (tx) => {
                 //locking the update row so only one at a time
@@ -154,7 +154,7 @@ export const p2pTransfer = async (req: AuthenticatedRequest, res: Response): Pro
                     where: { userId: Number(toUser?.id) },
                     data: { amount: { increment: amount } },
                 });
-                
+
                 //to create the ranscation table for p2p tranaction
             });
 
@@ -177,9 +177,9 @@ export const p2pTransfer = async (req: AuthenticatedRequest, res: Response): Pro
                 }
             })
             // Handle specific errors or re-throw for general errors
-            
+
             return res.status(402).json({ error: "Insufficient funds for transfer" });
-            
+
             //throw transactionError; // Re-throw for other unhandled errors
         }
     } catch (error: any) {
@@ -188,19 +188,104 @@ export const p2pTransfer = async (req: AuthenticatedRequest, res: Response): Pro
     }
 }
 
-export const walletBalance=async(req:AuthenticatedRequest,res:Response):Promise<any>=>{
-      try {
-          const user=req.user;
-          if(!user){
+export const walletBalance = async (req: AuthenticatedRequest, res: Response): Promise<any> => {
+    try {
+        const user = req.user;
+        if (!user) {
             res.status(404).json("User not Found")
-          }
-          const UserBalance=await prisma.balance.findFirst({
-            where:{userId:user?.id}
-          })
-          res.status(200).json({"User Balance":UserBalance?.amount || 0})
+        }
+        const UserBalance = await prisma.balance.findFirst({
+            where: { userId: user?.id }
+        })
+        res.status(200).json({ "User Balance": UserBalance?.amount || 0 })
 
-      } catch (error) {
-            console.error("Failed To Fetched balance")
-            res.status(400).json({error:"Failed To Fetched balance"})
-      }
+    } catch (error) {
+        console.error("Failed To Fetched balance")
+        res.status(400).json({ error: "Failed To Fetched balance" })
+    }
 }
+
+export const getUserTransactionHistory = async (req: AuthenticatedRequest, res: Response): Promise<any> => {
+    try {
+        const { type, mode } = req.query; //type (from/receiver), and mode (number/bankName)
+        const user = req.user;
+        if (!user) {
+            res.status(404).json("User not Found")
+        }
+        const userId = user?.id
+        if (!userId) {
+            return res.status(400).json({ error: "User ID is required" });
+        }
+
+
+         //filters that are added for the  search as per the query
+        const filters: any = {};
+
+        if (type === "from") {
+            filters.fromUserId = Number(userId);
+        } else if (type === "receiver") {
+            filters.toUserId = Number(userId);
+        }
+         else {
+            return res.status(400).json({ error: "Invalid transaction type" });
+        }
+
+        if (mode) {
+            if (type === "from") {
+                filters.paymentMode = mode.toString(); // Filter by payment mode for sender
+            } else if (type === "receiver") {
+                filters.receiverMode = mode.toString(); // Filter by receiver mode for receiver
+            }
+        }
+
+        // Query transaction history
+        const transactionHistory = await prisma.p2pTransfer.findMany({
+            where: filters,
+            orderBy: { timestamp: "desc" },
+            select: {
+                //id: true,
+                amount: true,
+                status: true,
+                // token: true,
+                timestamp: true,
+                fromUser: {
+                    select: {
+                        userName: true,
+                    },
+                },
+                toUser: {
+                    select: {
+                        userName: true,
+                    },
+                },
+                paymentMode: true,
+                receiverMode: true,
+            },
+        });
+
+        if (transactionHistory.length === 0) {
+            return res.status(404).json({ message: "No transactions found" });
+        }
+
+        // Format response
+        const formattedHistory = transactionHistory.map((tx) => ({
+            //transactionId: tx.id,
+            amount: tx.amount,
+            status: tx.status,
+            timestamp: tx.timestamp,
+            //token: tx.token,
+            sender: tx.fromUser?.userName || "Unknown",
+            receiver: tx.toUser?.userName || "Unknown",
+            paymentMode: tx.paymentMode,
+            receiverMode: tx.receiverMode,
+        }));
+
+        res.status(200).json({
+            message: "Transaction history fetched successfully",
+            transactions: formattedHistory,
+        });
+    } catch (error) {
+        console.error("Error fetching transaction history:", error);
+        res.status(500).json({ error: "Error fetching transaction history:" });
+    }
+};
