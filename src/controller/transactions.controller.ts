@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import axios from "axios";
 import { AuthenticatedRequest } from "../middleware/authentication";
+import { generateTransactionToken, simulateBankApi } from "../services/mockBanksService";
 
 
 const prisma = new PrismaClient();
@@ -87,17 +88,6 @@ export const addMoney = async (req: AuthenticatedRequest, res: Response): Promis
         console.error("Error in addMoney:", error);
         res.status(500).json({ error: "Internal server error" });
     }
-};
-
-function generateTransactionToken(): string {
-    return `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-}
-
-// Mock bank API call for demonstration
-const simulateBankApi = async (amount: number, userId: number, provider: String): Promise<{ success: boolean }> => {
-    // Simulate a delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    return { success: true }; // Simulate a successful response
 };
 
 
