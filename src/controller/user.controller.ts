@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { PrismaClient, User } from "@prisma/client";
-import { hashPin } from "../services/hashedPassword";
+import { comparePin, hashPin } from "../services/hashedPassword";
 import { generateToken } from "../services/generateTokens";
 import { compare } from "bcryptjs";
 import { AuthenticatedRequest } from "../middleware/authentication";
@@ -101,7 +101,7 @@ export const signInUser = async (req: any, res: any) => {
     }
 
     // Compare the entered PIN with the stored hashed PIN
-    const isPinValid = compare(pin, user.pin);
+    const isPinValid = await comparePin(pin, user.pin);
 
     if (!isPinValid) {
       res.status(400).json({ error: "Invalid PIN" });

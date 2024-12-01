@@ -13,8 +13,10 @@ const child_process_1 = require("child_process");
 // Run individual seed scripts
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
-        console.log("Seeding banks...");
-        yield (0, child_process_1.exec)("ts-node prisma/seeds/seedBanks.ts");
+        //console.log("Seeding banks...");
+        // await exec("ts-node prisma/seeds/seedBanks.ts");
+        console.log("Seeding User and respective banks...");
+        yield (0, child_process_1.exec)("ts-node prisma/seeds/seedUserAndBank.ts");
         console.log("Seeding complete!");
     });
 }
