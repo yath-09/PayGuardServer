@@ -37,6 +37,7 @@ const client_1 = require("@prisma/client");
 const bcryptjs = __importStar(require("bcryptjs"));
 const faker_1 = require("@faker-js/faker");
 const prisma = new client_1.PrismaClient();
+const numberOfUsersToBeAdded = 10;
 // Generate PIN based on phone number
 const generatePin = (phoneNumber) => {
     const pin = phoneNumber.slice(0, 4); // First 4 digits
@@ -76,7 +77,7 @@ const seedDatabase = () => __awaiter(void 0, void 0, void 0, function* () {
         console.log("Starting seeding...");
         const banks = ["axis", "hdfc", "icici"];
         const users = [];
-        for (let i = 0; i < 2; i++) {
+        for (let i = 0; i < numberOfUsersToBeAdded; i++) {
             const user = {
                 userName: faker_1.faker.name.fullName(),
                 phoneNumber: generatePhoneNumber(), // 10-digit Indian phone number
@@ -103,7 +104,7 @@ const seedDatabase = () => __awaiter(void 0, void 0, void 0, function* () {
                     locked: 0,
                 },
             });
-            // Assign Two Bank Accounts
+            // Assign Bank Accounts
             for (let j = 0; j < Math.floor(Math.random() * 3) + 1; j++) {
                 const bankName = banks[j];
                 const mpin = generateMpin(user.phoneNumber);
