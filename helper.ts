@@ -10,5 +10,6 @@
 // bash
 // Copy code
 // npx prisma generate
+//npx prisma migrate dev --name changes_made
 
 // npx prisma db seed

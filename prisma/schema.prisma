@@ -27,6 +27,7 @@ model User {
   receivedTransfers p2pTransfer[]       @relation(name: "ToUserRelation")
   panNumber       String?        @unique
   bankAccounts    BankAccount[]
+  walletLimit     Int  @default(10000)
 }
 
 model BankAccount {
@@ -41,6 +42,7 @@ model BankAccount {
   user           User     @relation(fields: [userId], references: [id])
   bankId         Int
   bank           Bank     @relation(fields: [bankId], references: [id])
+  bankTransferLimit Int  @default(25000)
 }
 
 model Bank {

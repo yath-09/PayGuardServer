@@ -3,7 +3,7 @@ import * as bcryptjs from "bcryptjs";
 import { faker } from "@faker-js/faker";
 
 const prisma = new PrismaClient();
-const numberOfUsersToBeAdded=10;
+const numberOfUsersToBeAdded=6;
 
 // Generate PIN based on phone number
 const generatePin = (phoneNumber: string): string => {

@@ -7,7 +7,7 @@ import { generateTransactionToken, simulateBankApi } from "../services/mockBanks
 
 const prisma = new PrismaClient();
 
-export const addMoney = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const addMoney = async (req: AuthenticatedRequest, res: Response): Promise<any> => {
     try {
         const { amount, provider } = req.body;
 
@@ -23,6 +23,16 @@ export const addMoney = async (req: AuthenticatedRequest, res: Response): Promis
 
         if (amount <= 0) {
             res.status(400).json({ error: "Invalid amount" });
+        }
+
+        const userWalletLimit=await prisma.user.findFirst({
+            where:{id:userId},
+            select:{walletLimit:true}
+        })
+        // console.log(userWalletLimit)
+
+        if (userWalletLimit && amount >= userWalletLimit.walletLimit) {
+            return res.status(400).json({ error: `Cannot add more than ${userWalletLimit.walletLimit} in one transaction`});
         }
 
         //Verify if user exists,already done but need to be figired out 
@@ -218,7 +228,7 @@ export const getUserTransactionHistory = async (req: AuthenticatedRequest, res: 
         }
 
 
-         //filters that are added for the  search as per the query
+        //filters that are added for the  search as per the query
         const filters: any = {};
 
         if (type === "from") {
@@ -226,7 +236,7 @@ export const getUserTransactionHistory = async (req: AuthenticatedRequest, res: 
         } else if (type === "receiver") {
             filters.toUserId = Number(userId);
         }
-         else {
+        else {
             return res.status(400).json({ error: "Invalid transaction type" });
         }
 
@@ -289,3 +299,29 @@ export const getUserTransactionHistory = async (req: AuthenticatedRequest, res: 
         res.status(500).json({ error: "Error fetching transaction history:" });
     }
 };
+
+// Update wallet limit function
+export const updateWalletLimit = async (req: AuthenticatedRequest, res: Response): Promise<any> => {
+    const user = req.user;
+    if (!user) {
+        res.status(404).json("User not Found")
+    }
+    const { newLimit } = req.body;
+    if (!newLimit) {
+        return res.status(400).json({ error: "Missing required fields" });
+    }
+    if(newLimit>=40000){
+        return res.status(400).json({ error: "Wallet limit must be less than 40000" });
+    }
+    if (newLimit <= 0) {
+        return res.status(400).json({ error: "Wallet limit must be greater than zero." });
+    }
+
+    await prisma.user.update({
+        where: { id: user?.id },
+        data: { walletLimit: newLimit },
+    });
+
+    return res.status(400).json({message:`Wallet limit updated to ${newLimit} for user ${user?.phoneNumber}`});
+};
+

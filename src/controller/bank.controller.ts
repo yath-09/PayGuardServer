@@ -3,6 +3,7 @@ import { AuthenticatedRequest } from "../middleware/authentication";
 import { PrismaClient } from "@prisma/client";
 import { comparePin, hashPin } from "../services/hashedPassword";
 import { generateTransactionToken, mockBankTransaction } from "../services/mockBanksService";
+import { error } from "console";
 
 const prisma = new PrismaClient();
 
@@ -116,9 +117,9 @@ export const userToUserTransfer = async (req: AuthenticatedRequest, res: Respons
         // Validate MPIN
         // Validate MPIN (hashed comparison)
         const isMpinValid = await comparePin(mpin, senderAccount.mpin);
-        console.log(`Provided MPIN: ${mpin}`);
-        console.log(`Stored Hashed MPIN: ${senderAccount.mpin}`);
-        console.log(`Is MPIN valid: ${isMpinValid}`);
+        // console.log(`Provided MPIN: ${mpin}`);
+        // console.log(`Stored Hashed MPIN: ${senderAccount.mpin}`);
+        // console.log(`Is MPIN valid: ${isMpinValid}`);
 
         if (!isMpinValid) {
             return res.status(403).json({ error: "Invalid MPIN" });
@@ -132,6 +133,9 @@ export const userToUserTransfer = async (req: AuthenticatedRequest, res: Respons
         // if (!senderBank || !receiverBank) {
         //     return res.status(500).json({ error: "Bank information unavailable" });
         // }
+        if(amount>senderAccount.bankTransferLimit){
+            return res.status(401).json({error:`Can not transfer more than ${senderAccount.bankTransferLimit} at one go`})
+        }
 
         const userToUserTransferAction=await prisma.p2pTransfer.create({
             data: {
@@ -190,4 +194,40 @@ export const userToUserTransfer = async (req: AuthenticatedRequest, res: Respons
         res.status(500).json({ error: "Internal server error" });
     }
 };
+
+export const updateTransferLimit = async (req: AuthenticatedRequest, res: Response): Promise<any> => {
+    const user = req.user;
+    if (!user) {
+        res.status(404).json("User not Found")
+    }
+    const { newLimit,bankName } = req.body;
+    if (!newLimit || !bankName) {
+        return res.status(400).json({ error: "Missing required fields" });
+    }
+    if (newLimit <= 0) {
+        return res.status(400).json({ error: "Wallet limit must be greater than zero." });
+    }
+
+    try {
+        const updatedBankAccount = await prisma.bankAccount.updateMany({
+          where: {
+            userId: user?.id,
+            bankName: bankName.toLowerCase(),
+          },
+          data: {
+            bankTransferLimit: newLimit,
+          },
+        });
+      
+        if (updatedBankAccount.count === 0) {
+          return res.status(404).json({ error: "Bank Account Not Found" });
+        }
+      
+        return res.status(200).json({ message: `Bank Transfer Limit Updated Successfully for user ${user?.phoneNumber} to ${newLimit} for bank Account ${bankName}` });
+      } catch (error) {
+        console.error("Error updating bank transfer limit:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+};
+
 
