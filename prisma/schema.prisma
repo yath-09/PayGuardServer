@@ -15,8 +15,8 @@ datasource db {
 
 model User {
   id              Int      @id @default(autoincrement())
-  userName        String
-  phoneNumber     String   @unique
+  userName        String   
+  phoneNumber     String   @unique 
   pin             String
   isPhoneVerified Boolean  @default(false)
   createdAt       DateTime @default(now())
@@ -28,6 +28,7 @@ model User {
   panNumber       String?        @unique
   bankAccounts    BankAccount[]
   walletLimit     Int  @default(10000)
+  @@index([phoneNumber])
 }
 
 model BankAccount {
@@ -43,6 +44,7 @@ model BankAccount {
   bankId         Int
   bank           Bank     @relation(fields: [bankId], references: [id])
   bankTransferLimit Int  @default(25000)
+  @@index([bankName,userId])
 }
 
 model Bank {
@@ -60,6 +62,7 @@ model OnRampTransaction {
   startTime DateTime
   userId    Int
   user      User         @relation(fields: [userId], references: [id])
+  @@index([userId])
 }
 
 model Balance {

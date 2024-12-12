@@ -152,7 +152,7 @@ export const searchUser = async (req: AuthenticatedRequest, res: Response): Prom
     if (!query) {
       return res.status(400).json({ error: "Search query cannot be empty" });
     }
-
+    const timeNow=Date.now();
     const users = await prisma.user.findMany({
       where: {
         OR: [
@@ -171,6 +171,8 @@ export const searchUser = async (req: AuthenticatedRequest, res: Response): Prom
         },
       },
     });
+    const timeThen=Date.now();
+    console.log("Time to fetch Users",timeThen-timeNow,"ms")
 
     if (users.length === 0) {
       return res.status(404).json({ error: "No users found" });
