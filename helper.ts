@@ -24,3 +24,12 @@
 //docker run -p 8000:8000 --env DATABASE_URL="your_database_url" --env PORT=your_port --env JWT_SECRET="YOurSecret" payguardserver
 //or run below to inclide everthing
 //docker run -p 8000:8000 --env-file .env your_docker_image_name
+
+//push to docker hub
+// docker build -t payguardserver .
+// docker tag payguardserver yath0903/payguardserver:v1
+// docker login
+// docker push yath0903/payguardserver:v1
+
+//pull from docker docker pull yath0903/payguardserver:v1
+//docker images to check images
