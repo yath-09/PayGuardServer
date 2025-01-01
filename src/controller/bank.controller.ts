@@ -4,7 +4,7 @@ import { PrismaClient } from "@prisma/client";
 import { comparePin, hashPin } from "../services/hashedPassword";
 import { generateTransactionToken, mockBankTransaction } from "../services/mockBanksService";
 import { error } from "console";
-
+import amqp from 'amqplib';
 const prisma = new PrismaClient();
 
 export const addBank = async (req: AuthenticatedRequest, res: Response): Promise<any> => {
@@ -80,7 +80,7 @@ export const addBank = async (req: AuthenticatedRequest, res: Response): Promise
 
 export const userToUserTransfer = async (req: AuthenticatedRequest, res: Response): Promise<any> => {
     try {
-        const {senderUpiId, receiverUpiId, amount, mpin } = req.body;
+        const { senderUpiId, receiverUpiId, amount, mpin } = req.body;
 
         // Validate inputs
         if (!senderUpiId || !receiverUpiId || !amount || !mpin) {
@@ -98,7 +98,7 @@ export const userToUserTransfer = async (req: AuthenticatedRequest, res: Respons
 
         // Verify the sender's UPI ID and associated account first check if the upi id of the sender is avilable in the auntecticated user or not
         const senderAccount = await prisma.bankAccount.findFirst({
-            where: { upiId:senderUpiId,userId: user.id },
+            where: { upiId: senderUpiId, userId: user.id },
         });
 
         if (!senderAccount) {
@@ -133,11 +133,11 @@ export const userToUserTransfer = async (req: AuthenticatedRequest, res: Respons
         // if (!senderBank || !receiverBank) {
         //     return res.status(500).json({ error: "Bank information unavailable" });
         // }
-        if(amount>senderAccount.bankTransferLimit){
-            return res.status(401).json({error:`Can not transfer more than ${senderAccount.bankTransferLimit} at one go`})
+        if (amount > senderAccount.bankTransferLimit) {
+            return res.status(401).json({ error: `Can not transfer more than ${senderAccount.bankTransferLimit} at one go` })
         }
 
-        const userToUserTransferAction=await prisma.p2pTransfer.create({
+        const userToUserTransferAction = await prisma.p2pTransfer.create({
             data: {
                 fromUserId: senderAccount.userId,
                 toUserId: receiverAccount.userId,
@@ -145,22 +145,58 @@ export const userToUserTransfer = async (req: AuthenticatedRequest, res: Respons
                 status: "Processing",
                 token: generateTransactionToken(),
                 timestamp: new Date(),
-                paymentMode:senderAccount.bankName.toString(),
-                receiverMode:receiverAccount.bankName.toString(),
+                paymentMode: senderAccount.bankName.toString(),
+                receiverMode: receiverAccount.bankName.toString(),
             },
         });
+        const startTime = Date.now();
         // Mock API call to simulate bank transaction
         const bankTransactionResult = await mockBankTransaction(
             // senderBank.name,
             // receiverBank.name,
             senderAccount.accountNumber,
             receiverAccount.accountNumber,
-            amount
+            amount,
+            userToUserTransferAction.token
         );
+        //check the processign case with the below 
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+ 
+        const processingTime = Date.now() - startTime;
+        if (processingTime> 2000) {
+            const QUEUE_NAME = "transactionQueue";
+            const rabbitMQURL = process.env.RABBITMQ_URL || "amqp://localhost";
+            const connection = await amqp.connect(rabbitMQURL);
+            const channel = await connection.createChannel();
+            await channel.assertQueue(QUEUE_NAME, { durable: true });
 
+            const transactionData = {
+                transactionId: userToUserTransferAction.id,
+                senderAccountNumber: senderAccount.accountNumber,
+                receiverAccountNumber: receiverAccount.accountNumber,
+                amount,
+                transactionToken: userToUserTransferAction.token,
+                retryNumbers:1,
+            };
+
+            // Send the transaction to RabbitMQ queue
+            channel.sendToQueue(QUEUE_NAME, Buffer.from(JSON.stringify(transactionData)), {
+                persistent: true,
+            });
+            setTimeout(() => connection.close(), 500);
+            return res.status(200).json({
+                message: "Transaction queued successfully for processing",
+                details: {
+                    sender: senderAccount.upiId,
+                    receiver: receiverUpiId,
+                    amount,
+                    status: "Processing",
+                },
+            });
+        }
         if (!bankTransactionResult.success) {
             await prisma.p2pTransfer.update({
-                where:{id:userToUserTransferAction?.id},
+                where: { id: userToUserTransferAction?.id },
                 data: {
                     status: "Failure",
                     timestamp: new Date()
@@ -173,7 +209,7 @@ export const userToUserTransfer = async (req: AuthenticatedRequest, res: Respons
 
         // Log the transaction
         await prisma.p2pTransfer.update({
-            where:{id:userToUserTransferAction?.id},
+            where: { id: userToUserTransferAction?.id },
             data: {
                 status: "Success",
                 timestamp: new Date()
@@ -200,7 +236,7 @@ export const updateTransferLimit = async (req: AuthenticatedRequest, res: Respon
     if (!user) {
         res.status(404).json("User not Found")
     }
-    const { newLimit,bankName } = req.body;
+    const { newLimit, bankName } = req.body;
     if (!newLimit || !bankName) {
         return res.status(400).json({ error: "Missing required fields" });
     }
@@ -210,24 +246,24 @@ export const updateTransferLimit = async (req: AuthenticatedRequest, res: Respon
 
     try {
         const updatedBankAccount = await prisma.bankAccount.updateMany({
-          where: {
-            userId: user?.id,
-            bankName: bankName.toLowerCase(),
-          },
-          data: {
-            bankTransferLimit: newLimit,
-          },
+            where: {
+                userId: user?.id,
+                bankName: bankName.toLowerCase(),
+            },
+            data: {
+                bankTransferLimit: newLimit,
+            },
         });
-      
+
         if (updatedBankAccount.count === 0) {
-          return res.status(404).json({ error: "Bank Account Not Found" });
+            return res.status(404).json({ error: "Bank Account Not Found" });
         }
-      
+
         return res.status(200).json({ message: `Bank Transfer Limit Updated Successfully for user ${user?.phoneNumber} to ${newLimit} for bank Account ${bankName}` });
-      } catch (error) {
+    } catch (error) {
         console.error("Error updating bank transfer limit:", error);
         res.status(500).json({ error: "Internal Server Error" });
-      }
+    }
 };
 
 

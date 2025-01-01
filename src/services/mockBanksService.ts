@@ -2,8 +2,9 @@ export async function mockBankTransaction(
     senderAccountNumber: string,
     receiverAccountNumber: string,
     amount: number,
+    transactionToken:string,
     senderBank?: string,
-    receiverBank?: string,
+    receiverBank?: string, 
 ): Promise<{ success: boolean; hash?: string }> {
     // Simulate success/failure randomly
     const isSuccess = Math.random() > 0.2; // 90% success rate
@@ -14,7 +15,7 @@ export async function mockBankTransaction(
 
     return {
         success: true,
-        hash: generateTransactionToken(),
+        hash: transactionToken,
     };
 }
 
