@@ -1,0 +1,40 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the code
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      # Install dependencies
+      - name: Install Dependencies
+        run: npm install
+
+      # Generate Prisma Client
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      # Build the TypeScript code
+      - name: Build Project
+        run: npm run build
+
+      # Run Tests (Optional, if tests are implemented)
+      # - name: Run Tests
+      #   run: npm test
