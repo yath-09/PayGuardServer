@@ -33,3 +33,20 @@
 
 //pull from docker docker pull yath0903/payguardserver:v1
 //docker images to check images
+
+
+
+
+//genertaing the ec2 server with the docker image 
+//go to machine for ec2 usng ec2 instannce 
+
+
+//instakll docker using below commands in the ec2 server
+
+// sudo apt-get update
+// sudo apt-get install -y docker.io
+// sudo systemctl start docker
+// sudo systemctl enable docker
+
+//
+
