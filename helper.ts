@@ -48,5 +48,6 @@
 // sudo systemctl start docker
 // sudo systemctl enable docker
 
-//
+//check the key inside the contianer cat ~/.ssh/authorized_keys
+
 
