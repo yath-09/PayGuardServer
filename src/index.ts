@@ -12,7 +12,7 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 8000;
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient();
 app.use(cookieParser()); // Use the middleware
 // Middleware
 app.use(express.json());
@@ -29,6 +29,12 @@ app.use(cors({ origin: process.env.CORS_ORIGIN, credentials: true }));
 
 app.use('/api/user', userRouter);
 app.use('/api/bank',bankRouter)
+app.get('/test', (req, res) => {
+  res.status(200).json({
+      message: 'Test route is working!',
+      timestamp: new Date(),
+  });
+});
 // Test route to add a user
 // app.get('/api/test-add-user', async (req, res) => {
 //     try {
