@@ -37,6 +37,7 @@
 
 
 
+
 //genertaing the ec2 server with the docker image 
 //go to machine for ec2 usng ec2 instannce 
 
