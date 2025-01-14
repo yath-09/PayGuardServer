@@ -19,35 +19,44 @@ jobs:
 
       - name: Set permissions for private key
         run: chmod 400 ec2-key.pem
-        
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build Docker Image
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/payguardserver:latest .
+
+      - name: Push Docker Image
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/payguardserver:latest
+
+      - name: Verify Pushed Image
+        run: docker pull ${{ secrets.DOCKER_USERNAME }}/payguardserver:latest
+
       - name: Deploy to EC2
         run: |
           ssh -o StrictHostKeyChecking=no -i ec2-key.pem ubuntu@${{ secrets.EC2_INSTANCE_IP }} << 'EOF'
             echo "Login successful!"
             uname -a
             
-            # Log in to Docker (if not already logged in)
             echo "Logging in to Docker Hub..."
             echo ${{ secrets.DOCKER_PASSWORD }} | sudo docker login --username ${{ secrets.DOCKER_USERNAME }} --password-stdin
 
-            # Clean up all existing containers
             echo "Cleaning up old containers..."
             sudo docker stop $(sudo docker ps -aq) || true
             sudo docker rm $(sudo docker ps -aq) || true
             
-            # Clean up all unused images
             echo "Cleaning up old images..."
             sudo docker rmi $(sudo docker images -q) || true
             
-            # Clean up unused volumes (optional but useful)
             echo "Cleaning up unused volumes..."
             sudo docker volume prune -f
             
-            # Pull the latest image from Docker Hub
             echo "Pulling latest image..."
             sudo docker pull ${{ secrets.DOCKER_USERNAME }}/payguardserver:latest
             
-            # Run the new image
             echo "Running the new container..."
             sudo docker run -d --name payguardserver -p 8000:8000 \
               --env DATABASE_URL=${{ secrets.DB_URL }} --env PORT=8000 --env JWT_SECRET=${{ secrets.JWT_SECRET }} ${{ secrets.DOCKER_USERNAME }}/payguardserver:latest
