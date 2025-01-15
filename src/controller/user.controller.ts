@@ -12,15 +12,15 @@ interface UserInput {
 
 const prisma = new PrismaClient();
 
-export const signUpUser = async (req: Request, res: Response): Promise<void> => {
+export const signUpUser = async (req: Request, res: Response): Promise<any> => {
   if (!req.body) {
     res.status(400).json({ message: "Request body is missing." });
     return;
   }
   const { userName, phoneNumber, pin }: UserInput = req.body as unknown as UserInput;
-  if (!userName) throw new Error("No username provided")
-  if (!pin) throw new Error("No pin provided")
-  if (!phoneNumber) throw new Error("No phoneNumber provided")
+  if (!userName) return res.status(400).json({ message: "No username provided" });
+  if (!pin)  return res.status(400).json({ message: "No pin provided" });
+  if (!phoneNumber) return res.status(400).json({ message: "No phoneNumber provided" });
 
   //check if the user already exists
   const isUserExists: User | null = await prisma.user.findFirst({
@@ -28,7 +28,7 @@ export const signUpUser = async (req: Request, res: Response): Promise<void> => 
   });
 
   if (isUserExists) {
-    res.status(400).json({ message: "User Already Exists" });
+    return res.status(400).json({ message: "User Already Exists" });
     throw new Error("User already exists");
   }
   // Hash the PIN before saving to the database
@@ -85,8 +85,8 @@ export const signInUser = async (req: any, res: any) => {
   }
   const { phoneNumber, pin }: UserInput = req.body as unknown as UserInput;
 
-  if (!pin) throw new Error("No pin provided")
-  if (!phoneNumber) throw new Error("No phoneNumber provided")
+  if (!pin)  return res.status(400).json({ message: "No pin provided" });
+  if (!phoneNumber) return res.status(400).json({ message: "No phoneNumber provided" });
 
   try {
     // Find the user in the database by phone number
@@ -97,14 +97,14 @@ export const signInUser = async (req: any, res: any) => {
     });
 
     if (!user) {
-      return res.status(404).json({ error: "User not found" }) || "";
+      return res.status(404).json({ message: "User not found" }) || "";
     }
 
     // Compare the entered PIN with the stored hashed PIN
     const isPinValid = await comparePin(pin, user.pin);
 
     if (!isPinValid) {
-      res.status(400).json({ error: "Invalid PIN" });
+      return res.status(400).json({ message: "Invalid PIN" });
     }
 
     //create tokens
